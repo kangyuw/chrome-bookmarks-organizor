@@ -1,5 +1,7 @@
 # AI-Powered Bookmark Architect Implementation Plan
 
+> **Note**: This plan is quite detailed. For a simpler, more focused approach, see [simplified_implementation.plan.md](./simplified_implementation.plan.md)
+
 ## Architecture Overview
 
 The system will be built as a modular Python application with three main components:

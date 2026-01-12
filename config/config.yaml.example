@@ -1,11 +1,20 @@
 # Chrome Bookmarks Organizer Configuration
 # Copy this file to config.yaml and fill in your API key
+#
+# API Key Options:
+# 1. Set it in this file: gemini_api_key: "YOUR_API_KEY_HERE"
+# 2. Set it as environment variable: export GEMINI_API_KEY="YOUR_API_KEY_HERE"
+#    (If both are set, the config file value takes precedence)
 
-gemini_api_key: "YOUR_API_KEY_HERE"
-batch_size: 60
-description_language: "english"  # Options: "english" or "chinese"
+# gemini_api_key: "YOUR_API_KEY_HERE"  # Optional if GEMINI_API_KEY env var is set
+batch_size: 25
 enable_web_search: true
 model_name: "gemini-1.5-flash"
 max_retries: 3
 retry_backoff_factor: 2.0
 log_level: "INFO"  # Options: "DEBUG", "INFO", "WARNING", "ERROR"
+# Excluded paths: bookmarks in these paths will not be sent to Gemini
+# Format: list of folder paths (each path is a list of folder names)
+# Example: [["misc", "archives"], ["temp"]]
+excluded_paths:
+  - ["misc", "archives"]

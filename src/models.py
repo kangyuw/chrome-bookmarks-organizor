@@ -7,6 +7,7 @@ This module defines the core data models used throughout the application:
 - Config: Application configuration model with YAML support
 """
 
+import os
 from datetime import datetime
 from pathlib import Path
 from typing import List, Literal, Optional
@@ -122,6 +123,51 @@ class Bookmark(BaseModel):
         json_encoders = {
             datetime: lambda v: int(v.timestamp()),
         }
+
+
+class ClassificationRequest(BaseModel):
+    """Temporary model for API communication (title-only approach).
+
+    Used to send bookmark data to the Gemini API with only essential information
+    (title and folder path) to reduce token usage. The ID is used to match
+    responses back to original bookmarks.
+
+    Attributes:
+        id: Unique integer identifier for matching responses to original bookmarks.
+        title: Bookmark title.
+        folder_path: Original folder structure as a list of folder names.
+
+    Note:
+        This model is temporary and only used for API communication, not persisted.
+    """
+
+    id: int
+    title: str
+    folder_path: List[str]
+
+
+class ClassificationResponse(BaseModel):
+    """Temporary model for API response parsing.
+
+    Used to parse Gemini API responses and match them back to original bookmarks
+    using the ID field.
+
+    Attributes:
+        id: Matches the request ID for matching.
+        category_path: AI-assigned semantic category path.
+        ai_description: AI-generated description.
+        series_group: Optional identifier for bookmarks in the same series/site.
+        is_broken: Optional flag indicating if the link is broken/inaccessible.
+
+    Note:
+        This model is temporary and only used for API communication, not persisted.
+    """
+
+    id: int
+    category_path: List[str]
+    ai_description: str
+    series_group: Optional[str] = None
+    is_broken: Optional[bool] = None
 
 
 class ClassifiedBookmark(Bookmark):
@@ -287,25 +333,31 @@ class Config(BaseModel):
     All fields are validated to ensure configuration integrity.
 
     Attributes:
-        gemini_api_key: Google Gemini API key (required).
-        batch_size: Number of bookmarks to process per API batch (10-100, default: 60).
-        description_language: Language for AI-generated descriptions ("english" or "chinese").
+        gemini_api_key: Google Gemini API key (required, can be set via GEMINI_API_KEY env var).
+        batch_size: Number of bookmarks to process per API batch (10-100, default: 25).
         enable_web_search: Whether to enable web search in Gemini API.
         model_name: Gemini model name to use (default: "gemini-1.5-flash").
         max_retries: Maximum number of retry attempts for API calls (1-10, default: 3).
         retry_backoff_factor: Exponential backoff multiplier for retries (1.0-10.0, default: 2.0).
         log_level: Logging level ("DEBUG", "INFO", "WARNING", "ERROR").
+        excluded_paths: List of folder paths to exclude from processing (e.g., ["misc", "archives"]).
+            Bookmarks in these paths will be preserved with their original paths.
 
     Example:
         >>> config = Config.load_from_yaml("config/config.yaml")
         >>> config.batch_size
-        60
+        25
     """
 
-    gemini_api_key: str
-    batch_size: int = Field(ge=10, le=100, default=60, description="Batch size for API calls")
-    description_language: Literal["english", "chinese"] = Field(
-        default="english", description="Description language"
+    gemini_api_key: Optional[str] = Field(
+        default=None,
+        description="Google Gemini API key (can be set via GEMINI_API_KEY environment variable)",
+    )
+    batch_size: int = Field(
+        ge=10,
+        le=100,
+        default=25,
+        description="Batch size for API calls (title-only approach allows larger batches if needed)",
     )
     enable_web_search: bool = Field(default=True, description="Enable web search in Gemini API")
     model_name: str = Field(default="gemini-1.5-flash", description="Gemini model name")
@@ -316,24 +368,40 @@ class Config(BaseModel):
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = Field(
         default="INFO", description="Logging level"
     )
+    excluded_paths: List[List[str]] = Field(
+        default_factory=list,
+        description="List of folder paths to exclude from processing (e.g., [['misc', 'archives']])",
+    )
 
-    @field_validator("gemini_api_key")
-    @classmethod
-    def validate_api_key(cls, v: str) -> str:
-        """Validate that API key is not empty.
+    @model_validator(mode="after")
+    def validate_api_key(self) -> "Config":
+        """Validate that API key is provided (from config or environment variable).
 
-        Args:
-            v: The API key string to validate.
+        Checks for API key in the following order:
+        1. Value provided in config file
+        2. GEMINI_API_KEY environment variable
 
         Returns:
-            The trimmed API key string.
+            Self after validation.
 
         Raises:
-            ValueError: If API key is empty or contains only whitespace.
+            ValueError: If API key is not found in config or environment.
         """
-        if not v or len(v.strip()) == 0:
-            raise ValueError("Gemini API key is required")
-        return v.strip()
+        # Check if API key is already set from config
+        if self.gemini_api_key and len(self.gemini_api_key.strip()) > 0:
+            self.gemini_api_key = self.gemini_api_key.strip()
+            return self
+
+        # Try to get from environment variable
+        env_key = os.getenv("GEMINI_API_KEY")
+        if env_key and len(env_key.strip()) > 0:
+            self.gemini_api_key = env_key.strip()
+            return self
+
+        # No API key found
+        raise ValueError(
+            "Gemini API key is required. Set it in config file or GEMINI_API_KEY environment variable"
+        )
 
     @classmethod
     def load_from_yaml(cls, file_path: Path | str) -> "Config":
