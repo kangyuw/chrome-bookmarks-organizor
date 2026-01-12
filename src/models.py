@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import List, Literal, Optional
 
 import yaml
-from pydantic import BaseModel, Field, HttpUrl, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator, model_validator
 
 
 class Bookmark(BaseModel):
@@ -106,6 +106,8 @@ class Bookmark(BaseModel):
         trimmed = [folder.strip() for folder in v if folder.strip()]
         return trimmed
 
+    model_config = ConfigDict()
+
     def model_dump_json(self, **kwargs) -> str:
         """Serialize model to JSON string.
 
@@ -116,13 +118,6 @@ class Bookmark(BaseModel):
             JSON string representation of the model.
         """
         return super().model_dump_json(**kwargs)
-
-    class Config:
-        """Pydantic model configuration."""
-
-        json_encoders = {
-            datetime: lambda v: int(v.timestamp()),
-        }
 
 
 class ClassificationRequest(BaseModel):

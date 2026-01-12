@@ -11,7 +11,8 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from pydantic import ValidationError
 
 from src.exceptions import (
@@ -60,19 +61,22 @@ class GeminiClient:
             APIError: If API key is invalid or model cannot be initialized.
         """
         self.config = config
-        genai.configure(api_key=config.gemini_api_key)
 
         try:
-            self.model = genai.GenerativeModel(
-                model_name=config.model_name,
-                generation_config={
-                    "response_mime_type": "application/json",
-                    "temperature": 0.7,
-                },
-                tools=[{"google_search": {}}] if config.enable_web_search else None,
+            self.client = genai.Client(api_key=config.gemini_api_key)
+            self.model_name = config.model_name
+            # Store generation config for use in API calls
+            tools = None
+            if config.enable_web_search:
+                tools = [types.Tool(google_search=types.GoogleSearch())]
+            
+            self.generation_config = types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.7,
+                tools=tools,
             )
         except Exception as e:
-            raise APIError(f"Failed to initialize Gemini model: {e}") from e
+            raise APIError(f"Failed to initialize Gemini client: {e}") from e
 
         logger.info(f"Initialized GeminiClient with model: {config.model_name}")
 
@@ -361,7 +365,12 @@ class GeminiClient:
                 loop = asyncio.get_event_loop()
                 try:
                     response = await loop.run_in_executor(
-                        None, lambda: self.model.generate_content(prompt)
+                        None,
+                        lambda: self.client.models.generate_content(
+                            model=self.model_name,
+                            contents=prompt,
+                            config=self.generation_config,
+                        ),
                     )
                 except Exception as api_exception:
                     # Handle Google API exceptions
@@ -589,4 +598,12 @@ class GeminiClient:
             f"Total bookmarks: {len(all_classified)} "
             f"({len(processed_bookmarks)} processed, {len(excluded_classified)} excluded)"
         )
+
+        # Display and save category tree structure
+        from src.tree_viewer import print_and_save_category_tree
+
+        logger.info("Displaying and saving category tree structure...")
+        tree_file = print_and_save_category_tree(all_classified)
+        logger.info(f"Category tree saved to: {tree_file}")
+
         return all_classified
