@@ -15,6 +15,7 @@ from google import genai
 from google.genai import types
 from pydantic import ValidationError
 
+from src.constants import DEFAULT_PROGRESS_FILE, PROGRESS_DIR, TREE_VIEWER_DIR
 from src.exceptions import (
     APIError,
     APIRateLimitError,
@@ -32,9 +33,6 @@ from src.models import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Default output directory for all generated files
-DEFAULT_OUTPUT_DIR = Path("output")
 
 
 class GeminiClient:
@@ -509,12 +507,15 @@ class GeminiClient:
             True
         """
         if progress_file is None:
-            # Use output directory for progress file
-            DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-            progress_file = DEFAULT_OUTPUT_DIR / "progress.json"
+            # Use dedicated progress directory
+            PROGRESS_DIR.mkdir(parents=True, exist_ok=True)
+            progress_file = DEFAULT_PROGRESS_FILE
         
-        # Determine output directory from progress file location
-        output_dir = progress_file.parent
+        # Ensure progress directory exists
+        progress_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Use tree_viewer directory for tree outputs
+        output_dir = TREE_VIEWER_DIR
 
         # Separate excluded and included bookmarks
         excluded_bookmarks: List[Bookmark] = []

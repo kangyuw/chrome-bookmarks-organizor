@@ -162,7 +162,9 @@ async def test_process_all_small_set(config: Config | None, sample_bookmarks: li
         pytest.skip("Config not available")
     
     # Use test-specific output directory
-    test_output_dir = Path("output/test")
+    from src.constants import TESTS_DIR
+    
+    test_output_dir = TESTS_DIR
     test_output_dir.mkdir(parents=True, exist_ok=True)
     progress_file = test_output_dir / "progress.json"
     
@@ -198,7 +200,9 @@ async def test_excluded_paths(config: Config | None, sample_bookmarks: list[Book
         pytest.skip("Config not available")
     
     # Use test-specific output directory
-    test_output_dir = Path("output/test")
+    from src.constants import TESTS_DIR
+    
+    test_output_dir = TESTS_DIR
     test_output_dir.mkdir(parents=True, exist_ok=True)
     progress_file = test_output_dir / "progress_excluded.json"
     
@@ -236,7 +240,9 @@ async def test_multilingual_bookmarks(config: Config | None) -> None:
         pytest.skip("Config not available")
     
     # Use test-specific output directory
-    test_output_dir = Path("output/test")
+    from src.constants import TESTS_DIR
+    
+    test_output_dir = TESTS_DIR
     test_output_dir.mkdir(parents=True, exist_ok=True)
     progress_file = test_output_dir / "progress_multilingual.json"
     
@@ -284,7 +290,9 @@ async def test_tree_output_generation(config: Config | None, sample_bookmarks: l
     from src.tree_viewer import display_category_tree, save_category_tree_to_file
     
     # Use test-specific output directory
-    test_output_dir = Path("output/test")
+    from src.constants import TESTS_DIR
+    
+    test_output_dir = TESTS_DIR
     test_output_dir.mkdir(parents=True, exist_ok=True)
     progress_file = test_output_dir / "progress_tree.json"
     

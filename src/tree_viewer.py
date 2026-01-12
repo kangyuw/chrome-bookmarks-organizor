@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from src.constants import TREE_VIEWER_DIR
 from src.models import Bookmark, ClassifiedBookmark
 
 logger = logging.getLogger(__name__)
@@ -330,7 +331,7 @@ def display_category_tree(bookmarks: List[ClassifiedBookmark], markdown: bool = 
 
 def save_category_tree_to_file(
     bookmarks: List[ClassifiedBookmark],
-    output_dir: Path | str = "output",
+    output_dir: Path | str | None = None,
     filename: str = "category_tree.md",
 ) -> Path:
     """Save the category tree structure to a markdown file in the output directory.
@@ -340,7 +341,7 @@ def save_category_tree_to_file(
 
     Args:
         bookmarks: List of ClassifiedBookmark instances.
-        output_dir: Directory where the file will be saved (default: "output").
+        output_dir: Directory where the file will be saved (default: output/tree_viewer/).
         filename: Name of the output file (default: "category_tree.md").
 
     Returns:
@@ -349,6 +350,8 @@ def save_category_tree_to_file(
     Raises:
         OSError: If the file cannot be written.
     """
+    if output_dir is None:
+        output_dir = TREE_VIEWER_DIR
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -378,7 +381,7 @@ def print_category_tree(bookmarks: List[ClassifiedBookmark], markdown: bool = Fa
 
 def print_and_save_category_tree(
     bookmarks: List[ClassifiedBookmark],
-    output_dir: Path | str = "output",
+    output_dir: Path | str | None = None,
     filename: str = "category_tree.md",
 ) -> Path:
     """Print and save the category tree structure.
@@ -388,7 +391,7 @@ def print_and_save_category_tree(
 
     Args:
         bookmarks: List of ClassifiedBookmark instances.
-        output_dir: Directory where the files will be saved (default: "output").
+        output_dir: Directory where the files will be saved (default: output/tree_viewer/).
         filename: Name of the markdown output file (default: "category_tree.md").
             The plain text tree view will be saved as "category_tree.txt".
 
@@ -398,6 +401,8 @@ def print_and_save_category_tree(
     # Print to console (plain text format for better terminal display)
     print_category_tree(bookmarks, markdown=False)
 
+    if output_dir is None:
+        output_dir = TREE_VIEWER_DIR
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -589,7 +594,7 @@ def display_folder_tree(bookmarks: List[Bookmark], markdown: bool = True) -> str
 
 def save_folder_tree_to_file(
     bookmarks: List[Bookmark],
-    output_dir: Path | str = "output",
+    output_dir: Path | str | None = None,
     filename: str = "folder_tree.md",
 ) -> Path:
     """Save the folder tree structure to a markdown file in the output directory.
@@ -599,7 +604,7 @@ def save_folder_tree_to_file(
 
     Args:
         bookmarks: List of Bookmark instances.
-        output_dir: Directory where the file will be saved (default: "output").
+        output_dir: Directory where the file will be saved (default: output/tree_viewer/).
         filename: Name of the output file (default: "folder_tree.md").
 
     Returns:
@@ -608,6 +613,8 @@ def save_folder_tree_to_file(
     Raises:
         OSError: If the file cannot be written.
     """
+    if output_dir is None:
+        output_dir = TREE_VIEWER_DIR
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -637,7 +644,7 @@ def print_folder_tree(bookmarks: List[Bookmark], markdown: bool = False) -> None
 
 def print_and_save_folder_tree(
     bookmarks: List[Bookmark],
-    output_dir: Path | str = "output",
+    output_dir: Path | str | None = None,
     filename: str = "folder_tree.md",
 ) -> Path:
     """Print and save the folder tree structure.
@@ -647,7 +654,7 @@ def print_and_save_folder_tree(
 
     Args:
         bookmarks: List of Bookmark instances.
-        output_dir: Directory where the files will be saved (default: "output").
+        output_dir: Directory where the files will be saved (default: output/tree_viewer/).
         filename: Name of the markdown output file (default: "folder_tree.md").
             The plain text tree view will be saved as "folder_tree.txt".
 
@@ -657,6 +664,8 @@ def print_and_save_folder_tree(
     # Print to console (plain text format for better terminal display)
     print_folder_tree(bookmarks, markdown=False)
 
+    if output_dir is None:
+        output_dir = TREE_VIEWER_DIR
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 

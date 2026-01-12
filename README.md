@@ -37,6 +37,23 @@ cp config/config.yaml.example config/config.yaml
 
 4. Edit `config/config.yaml` and add your Gemini API key.
 
+## Output Directory Structure
+
+All outputs are organized in dedicated subdirectories within the `output/` directory:
+
+- **`output/tree_viewer/`** - Tree structure visualizations (markdown and plain text)
+  - `category_tree.md` / `category_tree.txt` - AI-assigned category trees
+  - `folder_tree.md` / `folder_tree.txt` - Original folder structure trees
+
+- **`output/progress/`** - Progress and checkpoint files
+  - `progress.json` - Processing progress state for resume functionality
+
+- **`output/logs/`** - Log files (if file logging is enabled)
+
+- **`output/tests/`** - Test outputs and artifacts
+
+This organization ensures all outputs are properly categorized and easy to locate.
+
 ## Project Structure
 
 ```
@@ -49,11 +66,17 @@ chrome-bookmarks-organizor/
 │   ├── generator.py        # JSON to HTML generator (Phase 5)
 │   ├── prompts.py          # LLM prompt templates (Phase 3)
 │   ├── exceptions.py       # Custom exception classes (Phase 2)
-│   └── utils.py            # Shared utilities (Phase 6)
+│   ├── utils.py            # Shared utilities (Phase 6)
+│   └── utils/              # Utility modules
+│       └── tree_viewer_cli.py  # CLI utility for tree viewer
 ├── tests/                  # Test suite
 ├── config/                  # Configuration files
 ├── input/              # Input bookmark files
 └── output/                 # Generated organized bookmarks
+    ├── tree_viewer/         # Tree structure visualizations
+    ├── progress/            # Progress/checkpoint files
+    ├── logs/                # Log files (if file logging enabled)
+    └── tests/               # Test outputs
 ```
 
 ## Testing
@@ -103,6 +126,43 @@ save_folder_tree_to_file(bookmarks, output_dir="output", filename="my_tree.md")
 # Print and save in one call
 print_and_save_folder_tree(bookmarks, output_dir="output", filename="my_tree.md")
 ```
+
+#### Using the Tree Viewer CLI Utility
+
+The `tree_viewer_cli` utility provides a command-line interface for viewing bookmark tree structures from various input sources.
+
+**Supported input formats:**
+- HTML bookmark files (Chrome Netscape format) - displays folder trees
+- JSON progress files (ProgressState) - displays category trees from classified bookmarks
+- JSON files with lists of ClassifiedBookmark or Bookmark instances
+
+**Basic usage:**
+
+```bash
+# View folder tree from HTML bookmarks file
+poetry run python -m src.utils.tree_viewer_cli input/bookmarks_1_12_26.html
+
+# View category tree from progress JSON file
+poetry run python -m src.utils.tree_viewer_cli output/test/progress.json --category
+
+# Save tree to a specific directory (default: output/tree_viewer/)
+poetry run python -m src.utils.tree_viewer_cli input/bookmarks_1_12_26.html --output output/tree_viewer --filename my_tree.md
+
+# View as plain text (no markdown)
+poetry run python -m src.utils.tree_viewer_cli input/bookmarks_1_12_26.html --no-markdown
+
+# Only display to console, don't save to file
+poetry run python -m src.utils.tree_viewer_cli input/bookmarks_1_12_26.html --no-save
+```
+
+**Available options:**
+- `input_path` (required) - Path to input file (HTML bookmarks or JSON file)
+- `--category` - Display category tree instead of folder tree
+- `--output` / `-o` - Output directory (default: `output/tree_viewer/`)
+- `--filename` / `-f` - Custom output filename
+- `--no-markdown` - Display as plain text instead of markdown
+- `--no-save` - Only display to console, don't save to file
+- `--verbose` / `-v` - Enable verbose logging
 
 ### Running Tests
 
