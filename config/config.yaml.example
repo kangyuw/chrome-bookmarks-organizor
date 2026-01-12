@@ -1,0 +1,11 @@
+# Chrome Bookmarks Organizer Configuration
+# Copy this file to config.yaml and fill in your API key
+
+gemini_api_key: "YOUR_API_KEY_HERE"
+batch_size: 60
+description_language: "english"  # Options: "english" or "chinese"
+enable_web_search: true
+model_name: "gemini-1.5-flash"
+max_retries: 3
+retry_backoff_factor: 2.0
+log_level: "INFO"  # Options: "DEBUG", "INFO", "WARNING", "ERROR"
