@@ -13,6 +13,7 @@ To skip integration tests:
 import os
 import pytest
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from src.api_client import GeminiClient
 from src.models import Bookmark, Config
@@ -159,10 +160,16 @@ async def test_process_all_small_set(config: Config | None, sample_bookmarks: li
     """Test processing all bookmarks with real API calls."""
     if config is None:
         pytest.skip("Config not available")
+    
+    # Use test-specific output directory
+    test_output_dir = Path("output/test")
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+    progress_file = test_output_dir / "progress.json"
+    
     client = GeminiClient(config)
     
     # Process all sample bookmarks
-    result = await client.process_all(sample_bookmarks, resume=False)
+    result = await client.process_all(sample_bookmarks, resume=False, progress_file=progress_file)
     
     assert len(result) == len(sample_bookmarks)
     
@@ -189,13 +196,19 @@ async def test_excluded_paths(config: Config | None, sample_bookmarks: list[Book
     """Test that excluded paths are preserved without API calls."""
     if config is None:
         pytest.skip("Config not available")
+    
+    # Use test-specific output directory
+    test_output_dir = Path("output/test")
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+    progress_file = test_output_dir / "progress_excluded.json"
+    
     # Add excluded path to config
     config.excluded_paths = [["Tech", "DevOps"]]
     
     client = GeminiClient(config)
     
     # Process bookmarks
-    result = await client.process_all(sample_bookmarks, resume=False)
+    result = await client.process_all(sample_bookmarks, resume=False, progress_file=progress_file)
     
     # Find the excluded bookmark
     excluded_bookmark = next(
@@ -221,6 +234,12 @@ async def test_multilingual_bookmarks(config: Config | None) -> None:
     """Test classifying bookmarks with non-English titles."""
     if config is None:
         pytest.skip("Config not available")
+    
+    # Use test-specific output directory
+    test_output_dir = Path("output/test")
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+    progress_file = test_output_dir / "progress_multilingual.json"
+    
     client = GeminiClient(config)
     
     multilingual_bookmarks = [
@@ -240,7 +259,7 @@ async def test_multilingual_bookmarks(config: Config | None) -> None:
         ),
     ]
     
-    result = await client.process_all(multilingual_bookmarks, resume=False)
+    result = await client.process_all(multilingual_bookmarks, resume=False, progress_file=progress_file)
     
     assert len(result) == len(multilingual_bookmarks)
     
@@ -263,12 +282,16 @@ async def test_tree_output_generation(config: Config | None, sample_bookmarks: l
     if config is None:
         pytest.skip("Config not available")
     from src.tree_viewer import display_category_tree, save_category_tree_to_file
-    from tempfile import TemporaryDirectory
+    
+    # Use test-specific output directory
+    test_output_dir = Path("output/test")
+    test_output_dir.mkdir(parents=True, exist_ok=True)
+    progress_file = test_output_dir / "progress_tree.json"
     
     client = GeminiClient(config)
     
     # Process bookmarks
-    result = await client.process_all(sample_bookmarks, resume=False)
+    result = await client.process_all(sample_bookmarks, resume=False, progress_file=progress_file)
     
     # Generate tree structure
     tree_str = display_category_tree(result, markdown=True)

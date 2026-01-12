@@ -1,20 +1,23 @@
-"""Tree structure viewer for classified bookmarks.
+"""Tree structure viewer for bookmarks.
 
 This module provides functionality to build and display the folder/category
-tree structure from classified bookmarks in a human-readable format.
+tree structure from bookmarks in a human-readable format.
+
+It supports both:
+- Parsed bookmarks (Bookmark) using folder_path (original folder structure)
+- Classified bookmarks (ClassifiedBookmark) using category_path (AI-assigned categories)
 """
 
 import logging
-from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from src.models import ClassifiedBookmark
+from src.models import Bookmark, ClassifiedBookmark
 
 logger = logging.getLogger(__name__)
 
 
-def build_category_tree(bookmarks: List[ClassifiedBookmark]) -> Dict[str, any]:
+def build_category_tree(bookmarks: List[ClassifiedBookmark]) -> Dict[str, Any]:
     """Build a nested tree structure from bookmark category paths.
 
     Creates a hierarchical dictionary representing the folder structure
@@ -36,7 +39,7 @@ def build_category_tree(bookmarks: List[ClassifiedBookmark]) -> Dict[str, any]:
         >>> "Tech" in tree
         True
     """
-    tree: Dict[str, any] = defaultdict(lambda: {"_count": 0, "_bookmarks": []})
+    tree: Dict[str, Any] = {"_count": 0, "_bookmarks": []}
 
     for bookmark in bookmarks:
         path = bookmark.category_path
@@ -50,18 +53,18 @@ def build_category_tree(bookmarks: List[ClassifiedBookmark]) -> Dict[str, any]:
         current = tree
         for folder in path:
             if folder not in current:
-                current[folder] = defaultdict(lambda: {"_count": 0, "_bookmarks": []})
+                current[folder] = {"_count": 0, "_bookmarks": []}
             current[folder]["_count"] += 1
             current = current[folder]
 
         # Add bookmark to the leaf folder (deepest level)
         current["_bookmarks"].append(bookmark)
 
-    return dict(tree)
+    return tree
 
 
 def format_tree_node_markdown(
-    node: Dict[str, any],
+    node: Dict[str, Any],
     indent_level: int = 0,
     max_depth: int = 10,
     current_depth: int = 0,
@@ -121,7 +124,7 @@ def format_tree_node_markdown(
 
 
 def format_tree_node(
-    node: Dict[str, any],
+    node: Dict[str, Any],
     prefix: str = "",
     is_last: bool = True,
     max_depth: int = 10,
@@ -380,25 +383,297 @@ def print_and_save_category_tree(
 ) -> Path:
     """Print and save the category tree structure.
 
-    Displays the tree to console (plain text) and saves it as markdown to a file.
+    Displays the tree to console (plain text) and saves both markdown and plain text
+    tree view formats to files in the output directory.
 
     Args:
         bookmarks: List of ClassifiedBookmark instances.
-        output_dir: Directory where the file will be saved (default: "output").
-        filename: Name of the output file (default: "category_tree.md").
+        output_dir: Directory where the files will be saved (default: "output").
+        filename: Name of the markdown output file (default: "category_tree.md").
+            The plain text tree view will be saved as "category_tree.txt".
 
     Returns:
-        Path to the saved file.
+        Path to the saved markdown file.
     """
     # Print to console (plain text format for better terminal display)
     print_category_tree(bookmarks, markdown=False)
 
-    # Save to file (markdown format)
-    tree_str = display_category_tree(bookmarks, markdown=True)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
+
+    # Save markdown format
+    markdown_tree_str = display_category_tree(bookmarks, markdown=True)
+    markdown_file_path = output_path / filename
+    markdown_file_path.write_text(markdown_tree_str, encoding="utf-8")
+    logger.info(f"Category tree structure (markdown) saved to: {markdown_file_path}")
+
+    # Save plain text tree view format
+    plain_tree_str = display_category_tree(bookmarks, markdown=False)
+    # Generate plain text filename from markdown filename
+    plain_filename = filename.replace(".md", ".txt")
+    if plain_filename == filename:  # If no .md extension, add .txt
+        plain_filename = f"{filename}.txt"
+    plain_file_path = output_path / plain_filename
+    plain_file_path.write_text(plain_tree_str, encoding="utf-8")
+    logger.info(f"Category tree structure (plain text) saved to: {plain_file_path}")
+
+    return markdown_file_path
+
+
+# Functions for displaying parsed bookmarks (using folder_path)
+
+
+def build_folder_tree(bookmarks: List[Bookmark]) -> Dict[str, Any]:
+    """Build a nested tree structure from bookmark folder paths.
+
+    Creates a hierarchical dictionary representing the folder structure
+    based on folder_path from parsed bookmarks, including bookmark titles.
+
+    Args:
+        bookmarks: List of Bookmark instances.
+
+    Returns:
+        Nested dictionary representing the tree structure.
+        Format: {folder_name: {subfolder: {...}, "_count": int, "_bookmarks": [...]}}
+
+    Example:
+        >>> bookmarks = [
+        ...     Bookmark(..., folder_path=["Tech", "Python"]),
+        ...     Bookmark(..., folder_path=["Tech", "JavaScript"]),
+        ... ]
+        >>> tree = build_folder_tree(bookmarks)
+        >>> "Tech" in tree
+        True
+    """
+    tree: Dict[str, Any] = {"_count": 0, "_bookmarks": []}
+
+    for bookmark in bookmarks:
+        path = bookmark.folder_path
+        if not path:
+            # If no folder path, add to root level
+            tree["_bookmarks"].append(bookmark)
+            tree["_count"] += 1
+            continue
+
+        # Navigate/create the path in the tree
+        current = tree
+        for folder in path:
+            if folder not in current:
+                current[folder] = {"_count": 0, "_bookmarks": []}
+            current[folder]["_count"] += 1
+            current = current[folder]
+
+        # Add bookmark to the leaf folder (deepest level)
+        current["_bookmarks"].append(bookmark)
+
+    return tree
+
+
+def display_folder_tree(bookmarks: List[Bookmark], markdown: bool = True) -> str:
+    """Display the folder tree structure from parsed bookmarks.
+
+    Builds and formats a tree structure showing all folder paths
+    and bookmark titles for each folder.
+
+    Args:
+        bookmarks: List of Bookmark instances.
+        markdown: If True, format as markdown. If False, use plain text with tree characters.
+
+    Returns:
+        Formatted string representation of the tree structure.
+
+    Example:
+        >>> bookmarks = [Bookmark(...), ...]
+        >>> tree_str = display_folder_tree(bookmarks)
+        >>> print(tree_str)
+        # Folder Tree Structure
+
+        ## Tech (5 bookmarks)
+        - Programming (3 bookmarks)
+          - Python (2 bookmarks)
+            - Python Tutorial
+            - Advanced Python
+          - JavaScript (1 bookmark)
+            - JS Guide
+        - Web Development (2 bookmarks)
+    """
+    if not bookmarks:
+        return "No bookmarks to display."
+
+    tree = build_folder_tree(bookmarks)
+    if not tree:
+        return "No folder structure found."
+
+    lines: List[str] = []
+    total_count = len(bookmarks)
+    
+    if markdown:
+        lines.append("# Folder Tree Structure")
+        lines.append("")
+        lines.append(f"**Total:** {total_count} bookmark{'s' if total_count != 1 else ''}")
+        lines.append("")
+        lines.append("---")
+        lines.append("")
+    else:
+        lines.append(f"Folder Tree Structure ({total_count} total bookmark{'s' if total_count != 1 else ''})")
+        lines.append("=" * 60)
+
+    if markdown:
+        # Handle root-level bookmarks (if any)
+        root_bookmarks = tree.get("_bookmarks", [])
+        if root_bookmarks:
+            lines.append("## Root Level Bookmarks")
+            lines.append("")
+            for bookmark in sorted(root_bookmarks, key=lambda b: b.title):
+                lines.append(f"- [{bookmark.title}]({bookmark.url})")
+            if tree.keys() - {"_count", "_bookmarks"}:
+                lines.append("")
+
+        # Format each root folder as markdown
+        root_folders = sorted([k for k in tree.keys() if k not in ("_count", "_bookmarks")])
+        for root_folder in root_folders:
+            root_node = tree[root_folder]
+            root_count = root_node.get("_count", 0)
+
+            # Root folder as markdown header
+            lines.append(f"## {root_folder}")
+            if root_count > 0:
+                lines.append(f"*{root_count} bookmark{'s' if root_count != 1 else ''}*")
+            lines.append("")
+
+            # Children formatted as markdown nested lists
+            child_lines = format_tree_node_markdown(
+                root_node,
+                indent_level=0,
+            )
+            lines.extend(child_lines)
+            lines.append("")  # Add spacing between root folders
+
+    else:
+        # Handle root-level bookmarks (if any) - plain text format
+        root_bookmarks = tree.get("_bookmarks", [])
+        if root_bookmarks:
+            lines.append("Root Level Bookmarks:")
+            for bookmark in sorted(root_bookmarks, key=lambda b: b.title):
+                lines.append(f"  • {bookmark.title}")
+            if tree.keys() - {"_count", "_bookmarks"}:
+                lines.append("")
+
+        # Format each root folder - plain text format
+        root_folders = sorted([k for k in tree.keys() if k not in ("_count", "_bookmarks")])
+        for i, root_folder in enumerate(root_folders):
+            is_last_root = i == len(root_folders) - 1
+            root_node = tree[root_folder]
+            root_count = root_node.get("_count", 0)
+
+            # Root folder line
+            root_line = root_folder
+            if root_count > 0:
+                root_line += f" ({root_count} bookmark{'s' if root_count != 1 else ''})"
+            lines.append(root_line)
+
+            # Children
+            child_lines = format_tree_node(
+                root_node,
+                prefix="",
+                is_last=is_last_root,
+            )
+            lines.extend(child_lines)
+
+            # Add spacing between root folders (except for the last one)
+            if not is_last_root:
+                lines.append("")
+
+    return "\n".join(lines)
+
+
+def save_folder_tree_to_file(
+    bookmarks: List[Bookmark],
+    output_dir: Path | str = "output",
+    filename: str = "folder_tree.md",
+) -> Path:
+    """Save the folder tree structure to a markdown file in the output directory.
+
+    Creates the output directory if it doesn't exist and writes the tree
+    structure as markdown to a file.
+
+    Args:
+        bookmarks: List of Bookmark instances.
+        output_dir: Directory where the file will be saved (default: "output").
+        filename: Name of the output file (default: "folder_tree.md").
+
+    Returns:
+        Path to the saved file.
+
+    Raises:
+        OSError: If the file cannot be written.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
     file_path = output_path / filename
+    tree_str = display_folder_tree(bookmarks, markdown=True)
+
     file_path.write_text(tree_str, encoding="utf-8")
-    logger.info(f"Category tree structure saved to: {file_path}")
+    logger.info(f"Folder tree structure saved to: {file_path}")
 
     return file_path
+
+
+def print_folder_tree(bookmarks: List[Bookmark], markdown: bool = False) -> None:
+    """Print the folder tree structure to console.
+
+    Convenience function that displays the tree structure using the logger.
+    Uses plain text format for console output (better for terminal display).
+
+    Args:
+        bookmarks: List of Bookmark instances.
+        markdown: If True, use markdown format. If False, use plain text (default).
+    """
+    tree_str = display_folder_tree(bookmarks, markdown=markdown)
+    logger.info("\n" + tree_str)
+    print("\n" + tree_str)
+
+
+def print_and_save_folder_tree(
+    bookmarks: List[Bookmark],
+    output_dir: Path | str = "output",
+    filename: str = "folder_tree.md",
+) -> Path:
+    """Print and save the folder tree structure.
+
+    Displays the tree to console (plain text) and saves both markdown and plain text
+    tree view formats to files in the output directory.
+
+    Args:
+        bookmarks: List of Bookmark instances.
+        output_dir: Directory where the files will be saved (default: "output").
+        filename: Name of the markdown output file (default: "folder_tree.md").
+            The plain text tree view will be saved as "folder_tree.txt".
+
+    Returns:
+        Path to the saved markdown file.
+    """
+    # Print to console (plain text format for better terminal display)
+    print_folder_tree(bookmarks, markdown=False)
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    # Save markdown format
+    markdown_tree_str = display_folder_tree(bookmarks, markdown=True)
+    markdown_file_path = output_path / filename
+    markdown_file_path.write_text(markdown_tree_str, encoding="utf-8")
+    logger.info(f"Folder tree structure (markdown) saved to: {markdown_file_path}")
+
+    # Save plain text tree view format
+    plain_tree_str = display_folder_tree(bookmarks, markdown=False)
+    # Generate plain text filename from markdown filename
+    plain_filename = filename.replace(".md", ".txt")
+    if plain_filename == filename:  # If no .md extension, add .txt
+        plain_filename = f"{filename}.txt"
+    plain_file_path = output_path / plain_filename
+    plain_file_path.write_text(plain_tree_str, encoding="utf-8")
+    logger.info(f"Folder tree structure (plain text) saved to: {plain_file_path}")
+
+    return markdown_file_path

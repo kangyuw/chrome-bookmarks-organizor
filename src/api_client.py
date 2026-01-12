@@ -33,6 +33,9 @@ from src.models import (
 
 logger = logging.getLogger(__name__)
 
+# Default output directory for all generated files
+DEFAULT_OUTPUT_DIR = Path("output")
+
 
 class GeminiClient:
     """Client for classifying bookmarks using Google Gemini API.
@@ -70,11 +73,17 @@ class GeminiClient:
             if config.enable_web_search:
                 tools = [types.Tool(google_search=types.GoogleSearch())]
             
-            self.generation_config = types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.7,
-                tools=tools,
-            )
+            # response_mime_type="application/json" is not supported when tools are enabled
+            # When tools are enabled, we rely on the prompt to get JSON output
+            config_dict = {
+                "temperature": 0.7,
+                "tools": tools,
+            }
+            if not tools:
+                # Only set response_mime_type when tools are not enabled
+                config_dict["response_mime_type"] = "application/json"
+            
+            self.generation_config = types.GenerateContentConfig(**config_dict)
         except Exception as e:
             raise APIError(f"Failed to initialize Gemini client: {e}") from e
 
@@ -500,7 +509,12 @@ class GeminiClient:
             True
         """
         if progress_file is None:
-            progress_file = Path("progress.json")
+            # Use output directory for progress file
+            DEFAULT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+            progress_file = DEFAULT_OUTPUT_DIR / "progress.json"
+        
+        # Determine output directory from progress file location
+        output_dir = progress_file.parent
 
         # Separate excluded and included bookmarks
         excluded_bookmarks: List[Bookmark] = []
@@ -603,7 +617,9 @@ class GeminiClient:
         from src.tree_viewer import print_and_save_category_tree
 
         logger.info("Displaying and saving category tree structure...")
-        tree_file = print_and_save_category_tree(all_classified)
+        tree_file = print_and_save_category_tree(
+            all_classified, output_dir=output_dir
+        )
         logger.info(f"Category tree saved to: {tree_file}")
 
         return all_classified
