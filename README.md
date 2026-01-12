@@ -50,7 +50,7 @@ chrome-bookmarks-organizor/
 │   └── utils.py            # Shared utilities (Phase 6)
 ├── tests/                  # Test suite
 ├── config/                  # Configuration files
-├── inputs/              # Input bookmark files
+├── input/              # Input bookmark files
 └── output/                 # Generated organized bookmarks
 ```
 
@@ -61,7 +61,7 @@ chrome-bookmarks-organizor/
 Test the parser with a sample bookmark file:
 
 ```bash
-poetry run python -c "from src.parser import parse_bookmarks_html; bookmarks = parse_bookmarks_html('inputs/bookmarks_1_11_26.html'); print(f'Successfully parsed {len(bookmarks)} bookmarks')"
+poetry run python -c "from src.parser import parse_bookmarks_html; bookmarks = parse_bookmarks_html('input/bookmarks_1_11_26.html'); print(f'Successfully parsed {len(bookmarks)} bookmarks')"
 ```
 
 ### Running Tests

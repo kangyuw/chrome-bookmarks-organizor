@@ -35,6 +35,7 @@ venv.bak/
 # Note: poetry.lock should be committed for applications
 
 # IDEs
+.cursor/
 .vscode/
 .idea/
 *.swp
