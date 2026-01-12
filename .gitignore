@@ -48,8 +48,10 @@ config/config.yaml
 
 # Output files
 output/
+
+# Input bookmark files (user-specific, should not be committed)
+bookmarks/
 *.html
-!bookmarks/**/*.html
 !inputs/**/*.html
 
 # Testing
