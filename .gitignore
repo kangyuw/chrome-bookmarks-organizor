@@ -46,13 +46,12 @@ venv.bak/
 # Configuration files with secrets
 config/config.yaml
 
+# Input files
+input/
+
 # Output files
 output/
-
-# Input bookmark files (user-specific, should not be committed)
-bookmarks/
 *.html
-!inputs/**/*.html
 
 # Testing
 .pytest_cache/
